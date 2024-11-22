@@ -1,11 +1,11 @@
 def validate_input_csv(dataframe):
     # Check if the input dataframe has the required columns
-    required_columns = ['id', 'input_text']
+    required_columns = ['id', 'content_processed']
     if not all(col in dataframe.columns for col in required_columns):
         raise ValueError("Input dataframe is missing required columns. Please include 'id' and 'input' columns.")
 
     # Check if the input dataframe has the correct data types
-    input_column = dataframe['input_text']
+    input_column = dataframe['content_processed']
     id_column = dataframe['id']
 
     if len(input_column) != len(id_column):

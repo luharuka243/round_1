@@ -6,28 +6,15 @@ from PIL import Image
 from loguru import logger
 from ui_scripts.validate_csv import validate_input_csv
 from ui_scripts.accuracy import accuracy_check
+from Inference import load_models,predict_single,run_inference_pipeline
+from config import category_names_to_category, category_to_sub_category,master_mapper
 
-
+encoder, models, label_encoders, selectors = load_models(models_path='models/')
 # Configure Loguru logger
 logger.add("logs.txt", rotation="1 MB", retention="7 days", level="INFO")
 
 logger.info("Streamlit app started")
 
-
-# Load your model (replace with your model loading code)
-def load_model():
-    # Placeholder for model loading
-    model = None  # Replace with actual model
-    return model
-
-# Function to make predictions
-def predict(data, model):
-    # Replace with your model's prediction logic
-    predictions = [{"main_category":"O1","category":"02","sub_category":"03"}] * len(data)  # Dummy output
-    return predictions
-
-# Load the model
-model = load_model()
 
 # Sidebar for page navigation
 st.sidebar.title("Jump to Section")
@@ -114,7 +101,13 @@ if page == "Model Predictions":
     if st.button("Predict", key="real-time-predict", help="Click to get real-time predictions"):
         if input_text:
             # Add model prediction logic for real-time inputs
-            prediction = predict([input_text], model)
+            prediction = predict_single(input_text,
+                                        encoder=encoder,
+                                        models=models,
+                                          selectors=selectors,
+                                            label_encoders=label_encoders,
+                                            category_to_sub_category=category_to_sub_category,
+                                           master_mapper=master_mapper)
             st.markdown(f"<div class='prediction-box'>Prediction: {prediction}</div>", unsafe_allow_html=True)
         else:
             st.warning("Please enter some input data.")
@@ -137,7 +130,7 @@ if page == "Model Predictions":
         st.write(data.head(3))
 
         # Dropdown to show the required columns for CSV
-        required_columns = ['id','input_text','ground_truth [Optional for accuracy]']  # List required columns
+        required_columns = ['id','content_processed','ground_truth [Optional for accuracy]']  # List required columns
         st.subheader("Required Columns in CSV:")
         st.markdown(f"<span class='subheader-text'>The uploaded CSV should contain the following columns:</span>", unsafe_allow_html=True)
         st.write(required_columns)
@@ -152,14 +145,21 @@ if page == "Model Predictions":
 
         if st.button("Process CSV", key="process-csv", help="Click to process the uploaded CSV for predictions"):
             # Check if the selected column exists in the uploaded CSV
-            predictions = predict(data['input_text'], model)
+            predictions = run_inference_pipeline(test_df=data,
+                                                 encoder=encoder,
+                                                models=models,
+                                                    selectors=selectors,
+                                                    label_encoders=label_encoders,
+                                                    category_to_sub_category=category_to_sub_category,
+                                                    master_mapper=master_mapper,
+                                                    batch_size=64)
             data['Prediction'] = predictions
             st.write("Prediction Results CSV looks like this")
             st.write(data.head(2))
 
             if 'ground_truth' in data.columns:
                 logger.info('Ground truth provided')
-                accuracy=accuracy_check(predictions,list(dataframe['ground_truth']))
+                accuracy=accuracy_check(predictions,list(data['ground_truth']))
                 st.write(f"Model Accuracy on given CSV is : {accuracy}%")
             # Option to download the output CSV with predictions
             csv = data.to_csv(index=False)
