@@ -17,14 +17,11 @@ if not os.path.exists('models_gdrive'):
 
 class CyberCrimeDataset(Dataset):
     """Dataset class for cyber crime text classification"""
-    def __init__(self, texts: List[str], main_categories: List[str], 
-                 categories: List[str], sub_categories: List[str],
-                 sub_category_names: List[str]):
+    def __init__(self, texts: List[str], 
+                 categories: List[str], sub_categories: List[str]):
         self.texts = texts
-        self.main_categories = main_categories
         self.categories = categories
         self.sub_categories = sub_categories
-        self.sub_category_names = sub_category_names
         
     def __len__(self):
         return len(self.texts)
@@ -32,20 +29,16 @@ class CyberCrimeDataset(Dataset):
     def __getitem__(self, idx):
         return {
             'text': self.texts[idx],
-            'category_names': self.main_categories[idx],
-            'retagged_category': self.categories[idx],
-            'retagged_sub_category': self.sub_categories[idx],
-            'sub_category_names': self.sub_category_names[idx]
+            'category': self.categories[idx],
+            'sub_category': self.sub_categories[idx]
         }
 
 def custom_collate(batch):
     """Custom collate function to handle batch processing"""
     return {
         'text': [item['text'] for item in batch],
-        'category_names': [item['category_names'] for item in batch],
-        'retagged_category': [item['retagged_category'] for item in batch],
-        'retagged_sub_category': [item['retagged_sub_category'] for item in batch],
-        'sub_category_names': [item['sub_category_names'] for item in batch]
+        'category': [item['category'] for item in batch],
+        'sub_category': [item['sub_category'] for item in batch]
     }
 
 def evaluate_predictions(y_true: List[str], y_pred: List[str], level_name: str):
@@ -96,8 +89,8 @@ def process_batch(batch: Dict, encoder, models: Dict, selectors: Dict,
     
     batch_results = {
         'pred_category_names': [],
-        'pred_retagged_category': [],
-        'pred_retagged_sub_category': [],
+        'pred_category': [],
+        'pred_sub_category': [],
         'pred_sub_category_names': []
     }
     
@@ -141,8 +134,8 @@ def process_batch(batch: Dict, encoder, models: Dict, selectors: Dict,
                 sub_category_names = "unknown"
                 sub_category = "unknown"
             
-            batch_results['pred_retagged_category'].append(category)
-            batch_results['pred_retagged_sub_category'].append(sub_category)
+            batch_results['pred_category'].append(category)
+            batch_results['pred_sub_category'].append(sub_category)
             batch_results['pred_sub_category_names'].append(sub_category_names)
     
     except Exception as e:
@@ -179,11 +172,9 @@ def run_inference_pipeline(test_df: pd.DataFrame,
     """
     # Create dataset and dataloader
     dataset = CyberCrimeDataset(
-        texts=process_text_detailed(list(test_df['content_processed'])).tolist(),
-        main_categories=test_df.get('category_names', ['unknown'] * len(test_df)),
-        categories=test_df['retagged_category'].tolist(),
-        sub_categories=test_df['retagged_sub_category'].tolist(),
-        sub_category_names=test_df["sub_category_names"].tolist(),
+        texts=process_text_detailed(list(test_df['content_processed'])),
+        categories=test_df['category'].tolist(),
+        sub_categories=test_df['sub_category'].tolist(),
     )
 
     dataloader = DataLoader(
@@ -198,10 +189,10 @@ def run_inference_pipeline(test_df: pd.DataFrame,
     results = {
         'true_category_names': [],
         'pred_category_names': [],
-        'true_retagged_category': [],
-        'pred_retagged_category': [],
-        'true_retagged_sub_category': [],
-        'pred_retagged_sub_category': [],
+        'true_category': [],
+        'pred_category': [],
+        'true_sub_category': [],
+        'pred_sub_category': [],
         'true_sub_category_names': [],
         'pred_sub_category_names': []
     }
@@ -220,15 +211,15 @@ def run_inference_pipeline(test_df: pd.DataFrame,
             )
             
             # Store results
-            if 'category_names' in batch:
-                results['true_category_names'].extend(batch['category_names'])
+            # if 'category_names' in batch:
+                # results['true_category_names'].extend(batch['category_names'])
             results['pred_category_names'].extend(batch_predictions['pred_category_names'])
-            results['true_retagged_category'].extend(batch['retagged_category'])
-            results['pred_retagged_category'].extend(batch_predictions['pred_retagged_category']) #
-            results['true_sub_category_names'].extend(batch['sub_category_names'])
+            results['true_category'].extend(batch['category'])
+            results['pred_category'].extend(batch_predictions['pred_category']) #
+            # results['true_sub_category_names'].extend(batch['sub_category_names'])
             results['pred_sub_category_names'].extend(batch_predictions['pred_sub_category_names']) 
-            results['true_retagged_sub_category'].extend(batch['retagged_sub_category'])
-            results['pred_retagged_sub_category'].extend(batch_predictions['pred_retagged_sub_category']) #
+            results['true_sub_category'].extend(batch['sub_category'])
+            results['pred_sub_category'].extend(batch_predictions['pred_sub_category']) #
             
             # Update progress and show intermediate metrics
             pbar.update(1)
@@ -249,7 +240,7 @@ def show_intermediate_metrics(results: Dict, batch_idx: int,
     """Show intermediate metrics during batch processing"""
     pbar.write(f"\nBatch {batch_idx + 1}/{total_batches}")
     
-    for level in ['retagged_category', 'category_names', 'sub_category_names', 'retagged_sub_category']:
+    for level in ['category', 'category_names', 'sub_category_names', 'sub_category']:
         true_key = f'true_{level}'
         pred_key = f'pred_{level}'
         if true_key in results and len(results[true_key]) > 0:
@@ -306,9 +297,9 @@ def calculate_final_metrics(results_df: pd.DataFrame):
         )
 
     evaluate_predictions(
-        results_df['true_retagged_category'],
-        results_df['pred_retagged_category'],
-        'retagged_category'
+        results_df['true_category'],
+        results_df['pred_category'],
+        'category'
     )
 
     evaluate_predictions(
@@ -318,15 +309,15 @@ def calculate_final_metrics(results_df: pd.DataFrame):
     )
 
     evaluate_predictions(
-        results_df['true_retagged_sub_category'],
-        results_df['pred_retagged_sub_category'],
+        results_df['true_sub_category'],
+        results_df['pred_sub_category'],
         'Sub-Category'
     )
 
     # Calculate overall accuracy across all levels
     overall_accuracy = (
         (results_df['true_category_names'] == results_df['pred_category_names']) &
-        (results_df['true_retagged_category'] == results_df['pred_retagged_category']) &
+        (results_df['true_category'] == results_df['pred_category']) &
         (results_df['true_sub_category_names'] == results_df['pred_sub_category_names'])
     ).mean()
 
@@ -605,37 +596,37 @@ TO PUT CSV
 # Put CSV path here to predict on complete csv
 PATH_CSV="data/test.csv"
 print("Loading test data...")
-test_df = pd.read_csv('data/final_test_dataset.csv')
+test_df = pd.read_csv('data/test.csv')
 # Clean up the text data
-# test_df['content_processed'] = test_df['crimeaditionalinfo'].fillna('')
-# test_df['content_processed'] = test_df['content_processed'].astype(str)
+test_df['content_processed'] = test_df['crimeaditionalinfo'].fillna('')
+test_df['content_processed'] = test_df['content_processed'].astype(str)
 
 # Run full inference pipeline
-# results_df = run_inference_pipeline(
-#     test_df=test_df,
-#     encoder=encoder,
-#     models=models,
-#     selectors=selectors,
-#     label_encoders=label_encoders,
-#     category_to_sub_category=category_to_sub_category,
-#     master_mapper=master_mapper,
-#     batch_size=64
-# )
-
-# save_detailed_results(results_df, test_df)
-
-'''
-FOR SINGLE TEXT STRING
-'''
-# If it is just single text
-results_df = predict_single(
-    text="999",
+results_df = run_inference_pipeline(
+    test_df=test_df,
     encoder=encoder,
     models=models,
     selectors=selectors,
     label_encoders=label_encoders,
     category_to_sub_category=category_to_sub_category,
-    master_mapper=master_mapper
+    master_mapper=master_mapper,
+    batch_size=64
 )
 
-print(results_df)
+save_detailed_results(results_df, test_df)
+
+'''
+FOR SINGLE TEXT STRING
+'''
+# If it is just single text
+# results_df = predict_single(
+#     text="hi i am a cyber crime",
+#     encoder=encoder,
+#     models=models,
+#     selectors=selectors,
+#     label_encoders=label_encoders,
+#     category_to_sub_category=category_to_sub_category,
+#     master_mapper=master_mapper
+# )
+
+# print(results_df)
