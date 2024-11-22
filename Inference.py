@@ -365,12 +365,12 @@ def process_text_detailed(contents):
             text = re.sub(r'(.)\1{2,}', r'\1', text)
         
         # 7. Remove if less than 3 words
-        if len(text.split()) < 3:
-            continue
+        if len(text.split())==0:
+            text=' '
         
         # 8. Remove if only numbers
         if text.replace(' ', '').isnumeric():
-            continue
+            text=' '
         
         processed_contents.append(text)
     # Return single string if input was single string, otherwise return list
@@ -596,9 +596,9 @@ TO PUT CSV
 PATH_CSV="data/test.csv"
 print("Loading test data...")
 test_df = pd.read_csv('data/test.csv')
+test_df=test_df.head(100)
 test_df = test_df.dropna(subset=['crimeaditionalinfo', 'category'], how='all')
 test_df['sub_category'] = test_df['sub_category'].fillna(test_df['category'])
-test_df=test_df.head(100)
 # Clean up the text data
 test_df['content_processed'] = test_df['crimeaditionalinfo'].fillna('')
 test_df['content_processed'] = test_df['content_processed'].astype(str)
@@ -613,8 +613,7 @@ results_df = run_inference_pipeline(
     master_mapper=master_mapper,
     batch_size=64
 )
-
-# save_detailed_results(results_df, test_df)
+save_detailed_results(results_df, test_df)
 
 '''
 FOR SINGLE TEXT STRING

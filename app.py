@@ -6,8 +6,8 @@ from PIL import Image
 from loguru import logger
 from ui_scripts.process import process_text
 from ui_scripts.validate_csv import validate_input_csv
-from Inference import evaluate_predictions
-from Inference import load_models,predict_single,run_inference_pipeline
+from inference import evaluate_predictions
+from inference import load_models,predict_single,run_inference_pipeline
 from config import category_names_to_category, category_to_sub_category,master_mapper
 
 # Configure Loguru logger
