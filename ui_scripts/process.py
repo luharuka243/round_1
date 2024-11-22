@@ -2,6 +2,8 @@ import re
 
 def process_text(contents):
     # Ensure contents is a list
+    input_was_string = isinstance(contents, str)
+    print("input is string:" , input_was_string)
     if isinstance(contents, str):
         contents = [contents]
     
@@ -39,6 +41,13 @@ def process_text(contents):
             continue
         
         processed_contents.append(text)
-    
+    print(f"Processed contents : {processed_contents}")
     # Return single string if input was single string, otherwise return list
-    return processed_contents[0] if len(processed_contents) == 1 else processed_contents
+
+    if len(processed_contents)>0:
+        processed_result = processed_contents[0] if input_was_string else processed_contents
+    else :
+        processed_result=''
+
+
+    return processed_result
