@@ -23,7 +23,7 @@ def load_model():
 # Function to make predictions
 def predict(data, model):
     # Replace with your model's prediction logic
-    predictions = ["Placeholder prediction"] * len(data)  # Dummy output
+    predictions = [{"main_category":"O1","category":"02","sub_category":"03"}] * len(data)  # Dummy output
     return predictions
 
 # Load the model
