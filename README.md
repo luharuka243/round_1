@@ -1,6 +1,6 @@
 # CyberGuard_IndiaAI_Hackathon
 
-## Use Python>=3.9
+## Python version required Python>=3.9
 ## --> source env/bin/activate
 ## --> pip install -r requirements.txt
 ## --> python3 inference.py
