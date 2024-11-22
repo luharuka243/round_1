@@ -51,3 +51,19 @@ def process_text(contents):
 
 
     return processed_result
+
+def clean_string(s):
+    if not isinstance(s, str):
+        return s
+    
+    # Replace spaces with underscore
+    s = s.replace(' ', '_')
+    
+    # Replace special characters with asterisk
+    s = re.sub(r'[^a-zA-Z0-9_.]', '*', s)
+    s = s.replace(".","")
+    
+    # Remove consecutive special characters
+    s = re.sub(r'[*_]+', lambda m: '_' if '_' in m.group() else '_', s)
+    
+    return s

@@ -102,7 +102,7 @@ if page == "Model Predictions":
         if input_text:
             input_text=process_text(input_text)
             # Add model prediction logic for real-time inputs
-            prediction = predict_single(input_text,
+            prediction = predict_single(text=input_text,
                                         encoder=encoder,
                                         models=models,
                                           selectors=selectors,
