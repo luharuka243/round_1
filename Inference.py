@@ -8,8 +8,11 @@ from pathlib import Path
 from typing import Dict, List, Tuple
 from torch.utils.data import Dataset, DataLoader
 from sentence_transformers import SentenceTransformer
+from GdriveModels import download_google_drive_folder
 from config import category_names_to_category, category_to_sub_category,master_mapper
 from sklearn.metrics import classification_report, confusion_matrix, accuracy_score
+
+download_google_drive_folder()
 
 class CyberCrimeDataset(Dataset):
     """Dataset class for cyber crime text classification"""
@@ -341,7 +344,6 @@ def preprocess_text(text):
 def process_text_detailed(contents):
     # Ensure contents is a list
     input_was_string = isinstance(contents, str)
-    print("input is string:" , input_was_string)
     if isinstance(contents, str):
         contents = [contents]
     
@@ -379,7 +381,6 @@ def process_text_detailed(contents):
             continue
         
         processed_contents.append(text)
-    print(f"Processed contents : {processed_contents}")
     # Return single string if input was single string, otherwise return list
 
     if len(processed_contents)>0:
@@ -390,7 +391,7 @@ def process_text_detailed(contents):
 
     return processed_result
 
-def load_models(models_path='models/') -> Tuple[object, Dict, Dict, Dict]:
+def load_models(models_path='models_gdrive/models/') -> Tuple[object, Dict, Dict, Dict]:
     """
     Load all saved models, encoders, and selectors from the specified path
     
@@ -586,7 +587,7 @@ def analyze_examples(results_df: pd.DataFrame, test_df: pd.DataFrame, n_examples
 # Example usage with your mapping
 master_mapper = clean_json_mapping(master_mapper)
 # Load models and vectorizer
-encoder, models, label_encoders, selectors = load_models(models_path='models/')
+encoder, models, label_encoders, selectors = load_models(models_path='models_gdrive/models/')
 
 
 # Put CSV path here to predict on complete csv
@@ -595,22 +596,22 @@ PATH_CSV="data/test.csv"
 print("Loading test data...")
 test_df = pd.read_csv('data/final_test_dataset.csv')
 # Clean up the text data
-test_df['content_processed'] = test_df['crimeaditionalinfo'].fillna('')
-test_df['content_processed'] = test_df['content_processed'].astype(str)
+# test_df['content_processed'] = test_df['crimeaditionalinfo'].fillna('')
+# test_df['content_processed'] = test_df['content_processed'].astype(str)
 
 
 
 # Run full inference pipeline
-results_df = run_inference_pipeline(
-    test_df=test_df,
-    encoder=encoder,
-    models=models,
-    selectors=selectors,
-    label_encoders=label_encoders,
-    category_to_sub_category=category_to_sub_category,
-    master_mapper=master_mapper,
-    batch_size=64
-)
+# results_df = run_inference_pipeline(
+#     test_df=test_df,
+#     encoder=encoder,
+#     models=models,
+#     selectors=selectors,
+#     label_encoders=label_encoders,
+#     category_to_sub_category=category_to_sub_category,
+#     master_mapper=master_mapper,
+#     batch_size=64
+# )
 # save_detailed_results(results_df, test_df)
 
 # If it is just single text
