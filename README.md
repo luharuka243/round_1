@@ -10,7 +10,7 @@ CyberGuard is an advanced Natural Language Processing (NLP) project designed to 
 - **Python Version**: Ensure Python >= 3.9 is installed.
 - **Setup Steps**:
   1. Activate your virtual environment:
-     ```bash
+     ```bash 
      source env/bin/activate
      ```
   2. Install dependencies:
@@ -100,11 +100,11 @@ Build a series of machine learning models tailored for different levels of class
 - Computer-Generated CSAM  
 
 #### Model 9: Sub-categories under **Cyber Attack/Dependent Crimes**
-- SQL Injection  
-- Malware Attack  
+- SQL Injection 
+- Malware Attack
 - Ransomware Attack  
-- Data Breach/Theft  
-- DDoS Attacks  
+- Data Breach/Theft 
+- DDoS Attacks
 
 #### Model 10: Sub-categories under **Social Media-Related Crimes**
 - Cyberbullying & Stalking  
