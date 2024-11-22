@@ -6,21 +6,21 @@ from PIL import Image
 from loguru import logger
 from ui_scripts.validate_csv import validate_input_csv
 from ui_scripts.accuracy import accuracy_check
+from Inference import evaluate_predictions
 from Inference import load_models,predict_single,run_inference_pipeline
 from config import category_names_to_category, category_to_sub_category,master_mapper
 
-encoder, models, label_encoders, selectors = load_models(models_path='models/')
 # Configure Loguru logger
 logger.add("logs.txt", rotation="1 MB", retention="7 days", level="INFO")
 
 logger.info("Streamlit app started")
-
 
 # Sidebar for page navigation
 st.sidebar.title("Jump to Section")
 page = st.sidebar.radio("Go to", ["Model Predictions", "Documentation","About CloudSEK"])
 
 if page == "Model Predictions":
+    encoder, models, label_encoders, selectors = load_models(models_path='models/')
     st.markdown(
         """
         <style>
@@ -159,7 +159,7 @@ if page == "Model Predictions":
 
             if 'ground_truth' in data.columns:
                 logger.info('Ground truth provided')
-                accuracy=accuracy_check(predictions,list(data['ground_truth']))
+                accuracy=evaluate_predictions(list(data['ground_truth']),predictions)
                 st.write(f"Model Accuracy on given CSV is : {accuracy}%")
             # Option to download the output CSV with predictions
             csv = data.to_csv(index=False)
