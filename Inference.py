@@ -52,7 +52,6 @@ def evaluate_predictions(y_true: List[str], y_pred: List[str], level_name: str):
         level_name: Name of the hierarchy level being evaluated
     """
     print(f"\n=== {level_name} Metrics ===")
-    
     # Calculate accuracy
     accuracy = accuracy_score(y_true, y_pred)
     print(f"Accuracy: {accuracy:.4f}")
@@ -174,8 +173,8 @@ def run_inference_pipeline(test_df: pd.DataFrame,
     # Create dataset and dataloader
     dataset = CyberCrimeDataset(
         texts=process_text_detailed(list(test_df['content_processed'])),
-        categories=test_df['category'].tolist(),
-        sub_categories=test_df['sub_category'].tolist(),
+        categories=test_df['category'].apply(lambda x: clean_string(x)).tolist(),
+        sub_categories=test_df['sub_category'].apply(lambda x: clean_string(x)).tolist()
     )
 
     dataloader = DataLoader(
@@ -188,13 +187,11 @@ def run_inference_pipeline(test_df: pd.DataFrame,
 
     # Initialize results dictionary
     results = {
-        'true_category_names': [],
         'pred_category_names': [],
         'true_category': [],
         'pred_category': [],
         'true_sub_category': [],
         'pred_sub_category': [],
-        'true_sub_category_names': [],
         'pred_sub_category_names': []
     }
 
@@ -221,7 +218,6 @@ def run_inference_pipeline(test_df: pd.DataFrame,
             results['pred_sub_category_names'].extend(batch_predictions['pred_sub_category_names']) 
             results['true_sub_category'].extend(batch['sub_category'])
             results['pred_sub_category'].extend(batch_predictions['pred_sub_category']) #
-            
             # Update progress and show intermediate metrics
             pbar.update(1)
             if (batch_idx + 1) % max(1, total_batches // 10) == 0:
@@ -250,6 +246,23 @@ def show_intermediate_metrics(results: Dict, batch_idx: int,
                 results[pred_key]
             )
             pbar.write(f"Current {level} Accuracy: {current_accuracy:.4f}")
+
+def clean_string(s):
+    if not isinstance(s, str):
+        return s
+    
+    # Replace spaces with underscore
+    s=s.lower()
+    s = s.replace(' ', '_')
+    
+    # Replace special characters with asterisk
+    s = re.sub(r'[^a-zA-Z0-9_.]', '*', s)
+    s = s.replace(".","")
+    
+    # Remove consecutive special characters
+    s = re.sub(r'[*_]+', lambda m: '_' if '_' in m.group() else '_', s)
+    
+    return s
 
 def clean_json_mapping(json_mapping):
     """
@@ -303,11 +316,6 @@ def calculate_final_metrics(results_df: pd.DataFrame):
         'category'
     )
 
-    evaluate_predictions(
-        results_df['true_sub_category_names'],
-        results_df['pred_sub_category_names'],
-        'Mapped Sub-Category'
-    )
 
     evaluate_predictions(
         results_df['true_sub_category'],
@@ -315,15 +323,6 @@ def calculate_final_metrics(results_df: pd.DataFrame):
         'Sub-Category'
     )
 
-    # Calculate overall accuracy across all levels
-    overall_accuracy = (
-        (results_df['true_category_names'] == results_df['pred_category_names']) &
-        (results_df['true_category'] == results_df['pred_category']) &
-        (results_df['true_sub_category_names'] == results_df['pred_sub_category_names'])
-    ).mean()
-
-    print("\n=== Overall Results ===")
-    print(f"Complete Hierarchy Accuracy: {overall_accuracy:.4f}")
     
 # Mappings
 category_names_to_category = clean_json_mapping(category_names_to_category)
@@ -539,17 +538,17 @@ def save_detailed_results(results_df: pd.DataFrame, test_df: pd.DataFrame):
     ], axis=1)
     
     # Add correctness columns
-    detailed_results['category_names_correct'] = (
-        detailed_results['true_category_names'] == 
-        detailed_results['pred_category_names']
-    )
+    # detailed_results['category_names_correct'] = (
+    #     detailed_results['true_category_names'] == 
+    #     detailed_results['pred_category_names']
+    # )
     detailed_results['category_correct'] = (
-        detailed_results['true_retagged_category'] == 
-        detailed_results['pred_retagged_category']
+        detailed_results['true_category'] == 
+        detailed_results['pred_category']
     )
     detailed_results['sub_category_correct'] = (
-        detailed_results['true_retagged_sub_category'] == 
-        detailed_results['pred_retagged_sub_category']
+        detailed_results['true_sub_category'] == 
+        detailed_results['pred_sub_category']
     )
     
     # Save to CSV
@@ -557,8 +556,7 @@ def save_detailed_results(results_df: pd.DataFrame, test_df: pd.DataFrame):
     
     # Save error analysis
     error_cases = detailed_results[
-        ~(detailed_results['category_names_correct'] & 
-          detailed_results['category_correct'] & 
+        ~(detailed_results['category_correct'] & 
           detailed_results['sub_category_correct'])
     ]
     error_cases.to_csv('prediction_errors.csv', index=False)
@@ -598,6 +596,9 @@ TO PUT CSV
 PATH_CSV="data/test.csv"
 print("Loading test data...")
 test_df = pd.read_csv('data/test.csv')
+test_df = test_df.dropna(subset=['crimeaditionalinfo', 'category'], how='all')
+test_df['sub_category'] = test_df['sub_category'].fillna(test_df['category'])
+test_df=test_df.head(100)
 # Clean up the text data
 test_df['content_processed'] = test_df['crimeaditionalinfo'].fillna('')
 test_df['content_processed'] = test_df['content_processed'].astype(str)
@@ -613,7 +614,7 @@ results_df = run_inference_pipeline(
     batch_size=64
 )
 
-save_detailed_results(results_df, test_df)
+# save_detailed_results(results_df, test_df)
 
 '''
 FOR SINGLE TEXT STRING
