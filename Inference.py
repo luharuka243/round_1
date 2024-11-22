@@ -12,7 +12,8 @@ from GdriveModels import download_google_drive_folder
 from config import category_names_to_category, category_to_sub_category,master_mapper
 from sklearn.metrics import classification_report, confusion_matrix, accuracy_score
 
-download_google_drive_folder()
+if not os.path.exists('models_gdrive'):
+    download_google_drive_folder()
 
 class CyberCrimeDataset(Dataset):
     """Dataset class for cyber crime text classification"""
@@ -456,7 +457,15 @@ def predict_single(text: str, encoder, models: Dict, selectors: Dict,
     """
     try:
         # Preprocess and encode text
-        processed_text = preprocess_text(text)
+        processed_text = process_text_detailed(text)
+        print(f"Processed text: {processed_text}")
+        if not processed_text:
+            return {
+                'pred_category_names': 'any_other_cyber_crime',
+                'pred_retagged_category': 'any_other_cyber_crime',
+                'pred_retagged_sub_category': 'other',
+                'pred_sub_category_names': 'other'
+            }
         text_embedding = encoder.encode([processed_text], show_progress_bar=False)
         text_embedding = text_embedding.reshape(1, -1)
         
@@ -590,16 +599,16 @@ master_mapper = clean_json_mapping(master_mapper)
 encoder, models, label_encoders, selectors = load_models(models_path='models_gdrive/models/')
 
 
+'''
+TO PUT CSV
+'''
 # Put CSV path here to predict on complete csv
 PATH_CSV="data/test.csv"
-# Load test data
 print("Loading test data...")
 test_df = pd.read_csv('data/final_test_dataset.csv')
 # Clean up the text data
 # test_df['content_processed'] = test_df['crimeaditionalinfo'].fillna('')
 # test_df['content_processed'] = test_df['content_processed'].astype(str)
-
-
 
 # Run full inference pipeline
 # results_df = run_inference_pipeline(
@@ -612,11 +621,15 @@ test_df = pd.read_csv('data/final_test_dataset.csv')
 #     master_mapper=master_mapper,
 #     batch_size=64
 # )
+
 # save_detailed_results(results_df, test_df)
 
+'''
+FOR SINGLE TEXT STRING
+'''
 # If it is just single text
 results_df = predict_single(
-    text="is this the upi fraud going on in india",
+    text="999",
     encoder=encoder,
     models=models,
     selectors=selectors,
