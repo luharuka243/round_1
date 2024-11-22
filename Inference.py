@@ -596,7 +596,7 @@ TO PUT CSV
 PATH_CSV="data/test.csv"
 print("Loading test data...")
 test_df = pd.read_csv('data/test.csv')
-test_df=test_df.head(100)
+# test_df=test_df.head(100)
 test_df = test_df.dropna(subset=['crimeaditionalinfo', 'category'], how='all')
 test_df['sub_category'] = test_df['sub_category'].fillna(test_df['category'])
 # Clean up the text data
