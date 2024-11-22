@@ -1,5 +1,6 @@
 import os
 import re
+import time
 import joblib
 import numpy as np
 import pandas as pd
@@ -447,9 +448,9 @@ def predict_single(text: str, encoder, models: Dict, selectors: Dict,
         and sub_category_names
     """
     try:
+        start=time.time()
         # Preprocess and encode text
         processed_text = process_text_detailed(text)
-        print(f"Processed text: {processed_text}")
         if not processed_text:
             return {
                 'pred_category_names': 'any_other_cyber_crime',
@@ -601,7 +602,6 @@ test_df = pd.read_csv('data/test.csv')
 test_df['content_processed'] = test_df['crimeaditionalinfo'].fillna('')
 test_df['content_processed'] = test_df['content_processed'].astype(str)
 
-# Run full inference pipeline
 results_df = run_inference_pipeline(
     test_df=test_df,
     encoder=encoder,
@@ -618,9 +618,9 @@ save_detailed_results(results_df, test_df)
 '''
 FOR SINGLE TEXT STRING
 '''
-# If it is just single text
+# start=time.time()
 # results_df = predict_single(
-#     text="hi i am a cyber crime",
+#     text="hi i am a cyber crime, there is lot of problem in cyber crime in upi",
 #     encoder=encoder,
 #     models=models,
 #     selectors=selectors,
@@ -628,5 +628,6 @@ FOR SINGLE TEXT STRING
 #     category_to_sub_category=category_to_sub_category,
 #     master_mapper=master_mapper
 # )
+# print(f"Time taken for single text : {time.time()-start}")
 
 # print(results_df)
