@@ -213,7 +213,7 @@ def augment_original_mapped_sub_category(df, per_sample_target_count=1000, text_
     return augmented_df
 
 
-data = pd.read_csv("train_data_less_than_1000_count.csv",index_col="Unnamed: 0")
+data = pd.read_csv("data/train_data_less_than_1000_count.csv",index_col="Unnamed: 0")
 data.dropna(inplace=True)
 
 # Augment the dataset
