@@ -127,10 +127,6 @@ Build a series of machine learning models tailored for different levels of class
    - Achieved precise classification across multiple levels.
 
 ---
-
-## 🚀 Why CyberGuard Matters
-By enabling accurate and granular classification of cybercrime reports, CyberGuard assists organizations in better analyzing trends, responding to incidents, and allocating resources effectively. This solution empowers victims, law enforcement, and analysts alike.
-
 ---
 
 ## Contribute
