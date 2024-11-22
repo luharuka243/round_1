@@ -1,5 +1,7 @@
 # CyberGuard_IndiaAI_Hackathon
 
+## Use Python>=3.9
+
 - **`main_category`**: High-level crime categories, such as ["Women/Child Related Crime", "Financial Fraud Crimes", "Other Cyber Crime"]  
 - **`category`**: Specific crime types within each `main_category`, such as ['Any Other Cyber Crime',
  'Child Pornography CPChild Sexual Abuse Material CSAM',

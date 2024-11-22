@@ -7,10 +7,8 @@ import pandas as pd
 import numpy as np
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import LabelEncoder
-# import wandb
 from tqdm import tqdm
 from sklearn.metrics import precision_recall_fscore_support, confusion_matrix, classification_report
-import numpy as np
 
 def evaluate_model(model, test_dataset, device, label_encoder):
     """
