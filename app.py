@@ -4,8 +4,8 @@ import numpy as np
 import matplotlib.pyplot as plt
 from PIL import Image
 from loguru import logger
+from ui_scripts.process import process_text
 from ui_scripts.validate_csv import validate_input_csv
-from ui_scripts.accuracy import accuracy_check
 from Inference import evaluate_predictions
 from Inference import load_models,predict_single,run_inference_pipeline
 from config import category_names_to_category, category_to_sub_category,master_mapper
@@ -100,6 +100,7 @@ if page == "Model Predictions":
     input_text = st.text_input("Enter your input data:", label_visibility="collapsed")
     if st.button("Predict", key="real-time-predict", help="Click to get real-time predictions"):
         if input_text:
+            input_text=process_text(input_text)
             # Add model prediction logic for real-time inputs
             prediction = predict_single(input_text,
                                         encoder=encoder,
