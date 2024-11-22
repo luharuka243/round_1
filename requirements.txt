@@ -12,3 +12,4 @@ simpletransformers>=0.61.10
 nlpaug 1.1.11
 sentencepiece
 requests
+matplotlib
