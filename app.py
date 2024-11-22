@@ -261,7 +261,12 @@ elif page == "Documentation":
 
     # Model performance graphs
     # st.markdown('<h1 class="title-text">Model Performance Graphs</h1>', unsafe_allow_html=True)
-    
+    # Load and display the SVG
+    st.subheader("Re-imagining the clusters")
+    with open("ui_images/ai_hack_flowsvg_01.svg", "r") as svg_file:
+        svg_content = svg_file.read()
+    st.image(svg_content, use_column_width=True)
+
     # Accuracy over epochs graph
     st.subheader("Accuracy Over Epochs")
     epochs = np.arange(1, 11)  # Example epoch numbers
