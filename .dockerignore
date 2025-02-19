@@ -1,0 +1,59 @@
+# Exclude version control system files
+.git
+.gitignore
+
+# Exclude Python bytecode files
+__pycache__
+
+# Exclude test and documentation files
+*.pyc
+*.pyo
+*.pyd
+*.db
+*.sqlite3
+*.log
+*.logs
+*.swp
+*.db-journal
+*.md
+
+# Exclude development and editor-related files
+*.vscode
+.idea
+
+# Exclude build and distribution directories
+build/
+dist/
+*.egg-info/
+
+# Exclude environment and configuration files
+.env
+*.env
+*.env.local
+*.flaskenv
+*.env.test
+*.env.prod
+
+# Exclude data and cache directories
+data/
+notebooks/
+test_folder/
+cache/
+
+# Exclude database files
+*.db
+*.sqlite
+
+# Exclude logs and temporary files
+logs/
+tmp/
+temp/
+
+# Exclude system and hidden files
+.DS_Store
+Thumbs.db
+
+# Exclude package manager directories (e.g., for pipenv)
+.pipenv
+
+# Exclude any other files or directories not needed in the Docker image
