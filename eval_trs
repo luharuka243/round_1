@@ -1,0 +1,179 @@
+import torch
+import pandas as pd
+from torchtext.data.utils import get_tokenizer
+import json
+import pickle
+
+class CrimePredictor:
+    def __init__(self, model_path, config_path, vocab_path, categories_path):
+        """
+        Initialize the predictor with saved model and configuration
+        
+        Args:
+            model_path: Path to saved model weights
+            config_path: Path to saved model configuration
+            vocab_path: Path to saved vocabulary
+            categories_path: Path to saved category mapping
+        """
+        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        
+        # Load model configuration
+        with open(config_path, 'r') as f:
+            config_dict = json.load(f)
+            self.config = Config(**config_dict)
+        
+        # Load vocabulary
+        with open(vocab_path, 'rb') as f:
+            vocab_data = pickle.load(f)
+            self.word_to_id = vocab_data['word_to_id']
+            self.PAD = vocab_data['PAD']
+            self.UNK = vocab_data['UNK']
+        
+        # Load categories
+        with open(categories_path, 'r') as f:
+            self.categories = json.load(f)
+            self.id_to_category = {v: k for k, v in self.categories.items()}
+        
+        # Initialize model
+        self.model = CrimeTransformer(self.config, len(self.categories))
+        self.model.load_state_dict(torch.load(model_path, map_location=self.device))
+        self.model.to(self.device)
+        self.model.eval()
+        
+        # Initialize tokenizer
+        self.tokenizer = get_tokenizer('basic_english')
+        self.max_seq_len = self.config.max_seq_len
+
+    def preprocess_text(self, text):
+        """Preprocess a single text input"""
+        # Tokenize and convert to ids
+        tokens = self.tokenizer(text.lower())[:self.max_seq_len]
+        ids = [self.word_to_id.get(word, self.UNK) for word in tokens]
+        return torch.tensor(ids).unsqueeze(0)
+
+    def predict(self, text):
+        """
+        Predict category for a single text input
+        
+        Args:
+            text: String containing crime information
+            
+        Returns:
+            predicted_category: String containing predicted crime category
+            confidence: Float containing model's confidence score
+        """
+        self.model.eval()
+        with torch.no_grad():
+            # Preprocess input
+            x = self.preprocess_text(text).to(self.device)
+            pad_mask = (x == self.PAD).unsqueeze(1).unsqueeze(2)
+            
+            # Get model prediction
+            outputs = self.model(x, pad_mask)
+            probabilities = torch.nn.functional.softmax(outputs, dim=1)
+            
+            # Get predicted class and confidence
+            confidence, predicted = probabilities.max(1)
+            predicted_category = self.id_to_category[predicted.item()]
+            
+            return predicted_category, confidence.item()
+
+    def predict_batch(self, df, text_column='crime_info'):
+        """
+        Predict categories for a DataFrame containing crime information
+        
+        Args:
+            df: pandas DataFrame containing crime information
+            text_column: name of the column containing crime text
+            
+        Returns:
+            DataFrame with additional columns for predictions and confidence scores
+        """
+        predictions = []
+        confidences = []
+        
+        for text in df[text_column]:
+            pred_category, conf = self.predict(text)
+            predictions.append(pred_category)
+            confidences.append(conf)
+        
+        # Add predictions to DataFrame
+        df['predicted_category'] = predictions
+        df['confidence'] = confidences
+        return df
+
+def save_model_artifacts(model, config, word_to_id, categories, save_dir):
+    """
+    Save all necessary model artifacts for later prediction
+    
+    Args:
+        model: trained CrimeTransformer model
+        config: model configuration object
+        word_to_id: vocabulary dictionary
+        categories: category mapping dictionary
+        save_dir: directory to save artifacts
+    """
+    import os
+    os.makedirs(save_dir, exist_ok=True)
+    
+    # Save model weights
+    torch.save(model.state_dict(), f"{save_dir}/model.pth")
+    
+    # Save config
+    config_dict = {
+        'encoder_vocab_size': config.encoder_vocab_size,
+        'd_embed': config.d_embed,
+        'd_ff': config.d_ff,
+        'h': config.h,
+        'N_encoder': config.N_encoder,
+        'max_seq_len': config.max_seq_len,
+        'dropout': config.dropout
+    }
+    with open(f"{save_dir}/config.json", 'w') as f:
+        json.dump(config_dict, f)
+    
+    # Save vocabulary
+    vocab_data = {
+        'word_to_id': word_to_id,
+        'PAD': 0,
+        'UNK': 1
+    }
+    with open(f"{save_dir}/vocab.pkl", 'wb') as f:
+        pickle.dump(vocab_data, f)
+    
+    # Save categories
+    with open(f"{save_dir}/categories.json", 'w') as f:
+        json.dump(categories, f)
+
+# Example usage:
+if __name__ == "__main__":
+    # For saving model artifacts after training
+    """
+    save_model_artifacts(
+        model=trained_model,
+        config=config,
+        word_to_id=word_to_id,
+        categories=category_to_id,
+        save_dir='model_artifacts'
+    )
+    """
+    
+    # For loading model and making predictions
+    predictor = CrimePredictor(
+        model_path='model_artifacts/model.pth',
+        config_path='model_artifacts/config.json',
+        vocab_path='model_artifacts/vocab.pkl',
+        categories_path='model_artifacts/categories.json'
+    )
+    
+    # Example: Predict single text
+    text = "Armed robbery at convenience store at midnight"
+    category, confidence = predictor.predict(text)
+    print(f"Predicted category: {category}")
+    print(f"Confidence: {confidence:.2f}")
+    
+    # Example: Predict batch from CSV
+    new_data = pd.read_csv('new_crimes.csv')
+    results = predictor.predict_batch(new_data)
+    print("\nBatch Predictions:")
+    print(results[['crime_info', 'predicted_category', 'confidence']])
