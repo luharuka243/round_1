@@ -3,7 +3,9 @@ __pycache__/
 *.py[cod]
 *$py.class
 .DS_Store
-
+GoogleNews-vectors-negative300.bin.gz
+glove.6B.zip
+GoogleNews-vectors-negative300.bin
 # C extensions
 *.so
 testdata/
