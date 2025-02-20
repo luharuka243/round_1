@@ -1,0 +1,91 @@
+class EnhancedEncoderBlock(nn.Module):
+    ‘’'EncoderBlock with additional layers:
+    self-attention -> position-wise FFN -> intermediate attention -> enhanced FFN’‘'
+    def __init__(self, config):
+        super(EnhancedEncoderBlock, self).__init__()
+        # Primary attention layer
+        self.primary_attention = MultiHeadedAttention(config.h, config.d_embed, config.dropout)
+        self.primary_residual = ResidualConnection(config.d_embed, config.dropout)
+        # Primary feed-forward network
+        self.primary_ffn = nn.Sequential(
+            nn.Linear(config.d_embed, config.d_ff),
+            nn.ReLU(),
+            nn.Dropout(config.dropout),
+            nn.Linear(config.d_ff, config.d_embed)
+        )
+        self.primary_ffn_residual = ResidualConnection(config.d_embed, config.dropout)
+        # Intermediate attention layer
+        self.intermediate_attention = MultiHeadedAttention(config.h, config.d_embed, config.dropout)
+        self.intermediate_residual = ResidualConnection(config.d_embed, config.dropout)
+        # Enhanced feed-forward network with wider intermediate layer
+        self.enhanced_ffn = nn.Sequential(
+            nn.Linear(config.d_embed, config.d_ff * 2),  # Wider intermediate layer
+            nn.GELU(),  # Using GELU activation instead of ReLU
+            nn.Dropout(config.dropout),
+            nn.Linear(config.d_ff * 2, config.d_ff),
+            nn.ReLU(),
+            nn.Dropout(config.dropout),
+            nn.Linear(config.d_ff, config.d_embed)
+        )
+        self.enhanced_ffn_residual = ResidualConnection(config.d_embed, config.dropout)
+        # Layer normalization
+        self.final_norm = nn.LayerNorm(config.d_embed)
+    def forward(self, x, mask=None):
+        # Primary self-attention
+        x = self.primary_residual(x, lambda x: self.primary_attention(x, x, x, mask=mask))
+        # Primary feed-forward
+        x = self.primary_ffn_residual(x, self.primary_ffn)
+        # Intermediate attention
+        x = self.intermediate_residual(x, lambda x: self.intermediate_attention(x, x, x, mask=mask))
+        # Enhanced feed-forward
+        x = self.enhanced_ffn_residual(x, self.enhanced_ffn)
+        # Final normalization
+        return self.final_norm(x)
+# Updated Encoder class to use the enhanced encoder block
+class EnhancedEncoder(nn.Module):
+    ‘’'Enhanced Encoder with improved embedding and additional features’’'
+    def __init__(self, config):
+        super().__init__()
+        self.d_embed = config.d_embed
+        # Token embedding with improved initialization
+        self.tok_embed = nn.Embedding(config.encoder_vocab_size, config.d_embed)
+        nn.init.normal_(self.tok_embed.weight, mean=0, std=config.d_embed ** -0.5)
+        # Learned positional embedding
+        self.pos_embed = nn.Parameter(torch.zeros(1, config.max_seq_len, config.d_embed))
+        nn.init.normal_(self.pos_embed, mean=0, std=0.02)
+        # Stack of enhanced encoder blocks
+        self.encoder_blocks = nn.ModuleList([
+            EnhancedEncoderBlock(config) for _ in range(config.N_encoder)
+        ])
+        # Improved dropout with different rates
+        self.embedding_dropout = nn.Dropout(config.dropout)
+        self.attention_dropout = nn.Dropout(config.dropout * 0.8)
+        # Final layer normalization
+        self.norm = nn.LayerNorm(config.d_embed)
+    def forward(self, input, mask=None):
+        # Token and position embedding
+        x = self.tok_embed(input)
+        x_pos = self.pos_embed[:, :x.size(1), :]
+        x = self.embedding_dropout(x + x_pos)
+        # Process through encoder blocks
+        for layer in self.encoder_blocks:
+            x = layer(x, mask)
+            x = self.attention_dropout(x)
+        return self.norm(x)
+# Updated Transformer class to use the enhanced encoder
+class EnhancedTransformer(nn.Module):
+    def __init__(self, config, num_classes):
+        super().__init__()
+        self.encoder = EnhancedEncoder(config)
+        # Enhanced classification head
+        self.classification_head = nn.Sequential(
+            nn.Linear(config.d_embed, config.d_embed * 2),
+            nn.ReLU(),
+            nn.Dropout(config.dropout),
+            nn.Linear(config.d_embed * 2, num_classes)
+        )
+    def forward(self, x, pad_mask=None):
+        x = self.encoder(x, pad_mask)
+        # Global average pooling of sequence
+        pooled = torch.mean(x, -2)
+        return self.classification_head(pooled)
