@@ -1,0 +1,44 @@
+"""## Classify new crime info from CSV"""
+
+def classify_new_csv(model, csv_file_path, text_col='crime info', output_csv_path='classified_crimes.csv'):
+    """
+    Classifies crime information from a new CSV file using the trained transformer model.
+
+    Args:
+        model: Trained Transformer model.
+        csv_file_path (str): Path to the CSV file containing new crime info.
+        text_col (str): Name of the column in the CSV file containing the crime info text.
+        output_csv_path (str): Path to save the CSV file with predicted categories.
+    """
+    new_crime_df = pd.read_csv(csv_file_path)
+    predicted_categories = []
+
+    model.eval()  # Set model to evaluation mode
+    with torch.no_grad():  # Disable gradient calculations during inference
+        for index, row in new_crime_df.iterrows():
+            news_text = row[text_col]
+            if not isinstance(news_text, str):
+                news_text = "" # Handle potential non-string inputs, or skip/handle differently
+
+            x_text = tokenizer(news_text.lower())[0:max_seq_len]
+            x_int = torch.tensor([[word_to_id.get(word, UNK) for word in x_text]]).to(DEVICE)
+            pad_mask = (x_int == PAD).view(x_int.size(0), 1, 1, x_int.size(-1)) # Create pad mask
+
+            pred_id = model(x_int, pad_mask).argmax(1).item()
+            predicted_category = id_to_category[pred_id]
+            predicted_categories.append(predicted_category)
+
+    new_crime_df['predicted_category'] = predicted_categories
+    new_crime_df.to_csv(output_csv_path, index=False)
+    print(f"Predicted categories saved to: {output_csv_path}")
+
+# --- Usage ---
+# 1. Ensure your model is trained (run the training part above if needed)
+# 2. Specify the path to your new CSV file
+new_csv_file = "new_crime_info.csv"  # Replace with the actual path to your new CSV file
+output_csv_file = "classified_crime_categories.csv" # Path for the output file
+
+# 3. Call the classification function
+classify_new_csv(model, new_csv_file, text_col='crime info', output_csv_path=output_csv_file)
+
+print("Classification complete.")
