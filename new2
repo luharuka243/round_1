@@ -1,0 +1,94 @@
+# train_and_save.py
+
+import torch
+import torch.nn as nn
+import pandas as pd
+import numpy as np
+from torch.utils.data import Dataset, DataLoader
+from torchtext.data.utils import get_tokenizer
+import json
+import pickle
+import os
+
+# [Previous model code remains the same - MultiHeadedAttention, ResidualConnection, 
+# EncoderBlock, Encoder, CrimeTransformer classes stay as they were]
+
+def train_and_save_model(train_path, test_path, save_dir='model_artifacts'):
+    """
+    Train the model and save all necessary artifacts
+    """
+    # Create save directory
+    os.makedirs(save_dir, exist_ok=True)
+    
+    # Load and preprocess data
+    train_dataset, test_dataset, vocab_size, categories, PAD, word_to_id = load_and_preprocess_data(
+        train_path, test_path)
+    
+    # Save categories mapping
+    category_to_id = {cat: idx for idx, cat in enumerate(categories)}
+    with open(f"{save_dir}/categories.json", 'w') as f:
+        json.dump(category_to_id, f)
+    
+    # Save vocabulary
+    vocab_data = {
+        'word_to_id': word_to_id,
+        'PAD': PAD,
+        'UNK': 1
+    }
+    with open(f"{save_dir}/vocab.pkl", 'wb') as f:
+        pickle.dump(vocab_data, f)
+    
+    # Create data loaders
+    train_loader = DataLoader(train_dataset, batch_size=32, shuffle=True,
+                            collate_fn=lambda b: pad_sequence(b, PAD))
+    test_loader = DataLoader(test_dataset, batch_size=32, shuffle=False,
+                            collate_fn=lambda b: pad_sequence(b, PAD))
+    
+    # Model configuration
+    config = {
+        'encoder_vocab_size': vocab_size,
+        'd_embed': 64,
+        'd_ff': 256,
+        'h': 4,
+        'N_encoder': 3,
+        'max_seq_len': 100,
+        'dropout': 0.1
+    }
+    
+    # Save config
+    with open(f"{save_dir}/config.json", 'w') as f:
+        json.dump(config, f)
+    
+    # Create and train model
+    class Config:
+        def __init__(self, **kwargs):
+            for key, value in kwargs.items():
+                setattr(self, key, value)
+    
+    model_config = Config(**config)
+    model = CrimeTransformer(model_config, len(categories)).to(DEVICE)
+    
+    # Training setup
+    optimizer = torch.optim.Adam(model.parameters())
+    loss_fn = nn.CrossEntropyLoss()
+    
+    # Train the model
+    print("Training model...")
+    train_model(model, train_loader, test_loader, epochs=5, 
+                optimizer=optimizer, loss_fn=loss_fn, pad_token=PAD)
+    
+    # Save model weights
+    print(f"Saving model artifacts to {save_dir}")
+    torch.save(model.state_dict(), f"{save_dir}/model.pth")
+    print("Model and artifacts saved successfully!")
+    
+    return model, config, word_to_id, category_to_id
+
+# Example usage
+if __name__ == "__main__":
+    # First, train and save the model
+    model, config, word_to_id, category_to_id = train_and_save_model(
+        train_path='train.csv',
+        test_path='test.csv',
+        save_dir='model_artifacts'
+    )
